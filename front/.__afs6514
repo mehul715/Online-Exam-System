@@ -1,0 +1,306 @@
+<?php include "stuHead.php";?>
+<?php
+session_start();
+?>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+  <style>
+    * {
+      padding: 0px;
+      margin: 0px;
+    }
+    body {
+      background-color: #ffffff;
+      font-family: sans-serif;
+    }
+
+    #exam {
+      padding: 15px;
+    }
+    textarea {
+      width: 100%;
+      height: 150px;
+      padding: 12px 20px;
+      margin: 10px 0px;
+      box-sizing: border-box;
+      border: 2px solid #ccc;
+      border-radius: 4px;
+      background-color: #f8f8f8;
+      resize: none;
+    }
+    .submitbutton {
+
+      padding: 10px 40px;
+      margin-top: 5px;
+      font-weight: bold;
+      letter-spacing: 1px;
+
+
+    }
+    .submitbutton:hover {
+      color: white;
+      background-color: #282830;
+      cursor: pointer;
+    }
+    #exam {
+      text-align: center;
+    }
+    #exam h3 {
+      font-weight: normal;
+      font-size: 15px;
+    }
+    #responstable {
+      text-transform: capitalize;
+      padding: 5px;
+      margin: 3em auto;
+      width: 40%;
+      overflow: hidden;
+      color: #024457;
+      border-radius: 1px;
+    }
+    #responstable tr:nth-child(odd) {
+      background-color: #dddddd;
+    }
+    #responstable th {
+      display: none;
+      background-color: #082759;
+      color: #FFF;
+      padding: 1em;
+
+    }
+    #responstable th:first-child {
+      display: table-cell;
+      text-align: center;
+    }
+    #responstable th:nth-child(2) {
+      display: table-cell;
+    }
+    #responstable td {
+      display: block;
+      max-width: 2em;
+      text-align: center;
+
+    }
+    #responstable th,
+    #responstable td {
+      text-align: center;
+      margin: .5em 1em;
+    }
+    @media (min-width: 280px) {
+      #responstable th,
+      #responstable td {
+        display: table-cell;
+        padding: 1em;
+      }
+    }
+  </style>
+</head>
+
+
+<body onload="sendtoexam()">
+
+<center style="font-family:Roboto; font-size:40px;">Take Exam</center>
+
+
+
+
+  <div id="selection">
+    <form>
+      <table id="responstable">
+      </table>
+    </form>
+  </div>
+
+
+  <div id="examstarts">
+    <h1 id=examheading style="text-align:center; padding: 50px;"></h1>
+    <form id="exam"></form>
+  </div>
+</body>
+
+
+<script>
+
+  var Exam_Id = 0;
+  var question_ids = new Array();
+  var username;
+
+  function getUsername()
+  {
+    var parameters = location.search.substring(1).split("&");
+    var temp = parameters[0].split("=");
+    username= unescape(temp[1]);
+  }
+
+  function sendtoexam() {
+  getUsername();
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function() {
+      if (this.readyState == 4 && this.status == 200) {
+        var response = JSON.parse(this.responseText);
+        
+        displayexam_list(response);
+      }
+    };
+    xhr.open("POST", "takeExam_list.php", true);
+    xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+    xhr.send();
+  }
+
+  function displayexam_list(response) {
+
+    var len = Object.keys(response).length;
+    var html = "";
+    var header = [ "Exam ID", "Exam"];
+    var Exam_id = "";
+
+    html += '<thead> <tr>';
+    for (var index = 0; index < header.length; index++) {
+      html += '<th style = "text-align: center">' + header[index] + '</th>';
+    }
+
+    html += '</tr> </thead>';
+    html += '<tbody>';
+
+    for (var i = 0; i < len; i++) {
+      var Exam_id = response[i]["exam_id"];
+      var Exam_name = response[i]["examname"];
+      console.log(Exam_name);
+
+      html += '<td>' + Exam_id + '</td>';
+      html += '<td>' + Exam_name + '</td>';
+
+      var xhr = new XMLHttpRequest();
+      xhr.onreadystatechange = function() {
+
+        if (this.readyState == 4 && this.status == 200) {
+          var response = JSON.parse(this.responseText);
+          console.log(response);
+            html += '<td>' + '<a href="#"' + "onclick=getExam(" + Exam_id + ")>" +  Exam_name + '</td>';
+
+            html += '</tr>';
+
+        }
+      };
+      
+      
+
+var sendarray = [];
+
+sendarray.push({"exam_id":Exam_id, "examname":Exam_name});
+      xhr.open("POST", "takeExam_allExams.php", true);
+      //xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+      xhr.send(JSON.stringify(sendarray));
+      html += '</tbody>';
+    }
+    document.getElementById("responstable").innerHTML = html;
+  }
+  function getExam(id) {
+
+    window.Exam_Id = id;
+    document.getElementById("responstable").innerHTML = "";
+    document.getElementById("selection").innerHTML = "";
+  //  document.getElementById("examheading").innerHTML = "Exam Starts";
+    var xhr = new XMLHttpRequest();
+
+
+    xhr.onreadystatechange = function() {
+      if (this.readyState == 4 && this.status == 200) {
+        var response = JSON.parse(this.responseText);
+        console.log(response);
+        displayExam(response);
+      }
+    };
+
+
+    xhr.open("POST", "takeExam_requestExam.php?id=" + id, true);
+    xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+    xhr.send();
+
+  }
+  function displayExam(response) {
+
+    var questions_len = Object.keys(response).length;
+    var exam = "";
+    var questionID = "";
+
+    for (var index = 0; index < questions_len; index++) {
+      var question_id = response[index]['ID'];
+      console.log(question_id);
+
+      var question_body = response[index]['question'];
+     console.log(question_body);
+
+      var question_weight = response[index]['points'];
+      window.question_ids.push(question_id);
+
+      exam += '<h3 style="float:center;">' + (index + 1) + ") " + question_body + '<br>(Points = ' + question_weight + ')' + '</h3>';
+      exam += '<textarea rows="10" style="width:80%" placeholder="Answer..." id=' + question_id + ' class="questions">' + '</textarea>';
+    }
+    exam += '<br><br><button type="button" class="submitbutton" onclick="sendAnswers()">Submit</button>';
+    document.getElementById("exam").innerHTML = exam;
+  }
+  function sendAnswers() {
+    for (var index = 0; index < window.question_ids.length; index++) {
+      var qu_id = window.question_ids[index];
+      var response = {};
+
+      response['exam_id'] = window.Exam_Id;
+      response['ID'] = qu_id;
+      response['answer_body'] = document.getElementById(qu_id).value;
+      response['username']='mds39';
+
+
+
+     console.log(JSON.stringify(response));
+
+
+      var xhr = new XMLHttpRequest();
+      xhr.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+
+             console.log(this.responseText);
+
+        }
+      };
+
+      xhr.open("POST", "takeExam_store_Answers.php", false);
+      xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+      xhr.send(JSON.stringify(response));
+      xhr.onreadystatechange = sendInstructor(Exam_Id);
+    }
+  }
+  function sendInstructor(Exam_Id) {
+    for (var index = 0; index < window.question_ids.length; index++) {
+      var qu_id = window.question_ids[index];
+      var response = {};
+      response['exam_id'] = window.Exam_Id;
+
+      response['username']= 'mds39';
+
+            console.log("this is from front");
+
+
+      var xhr = new XMLHttpRequest();
+      xhr.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+
+             console.log(this.responseText);
+
+        }
+      };
+      xhr.open("POST", "send_instructorexam.php", true);
+      xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+      xhr.send(JSON.stringify(response));
+    }
+  }
+
+</script>
+
+</html>
